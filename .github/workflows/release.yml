@@ -50,6 +50,15 @@ jobs:
           name: noor-apk
           path: noor.apk
           retention-days: 30
+      # The APK is hosted on GitHub Releases (Cloudflare Pages limits files to 25 MiB).
+      - name: Publish APK as a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Noor build ${{ github.run_number }}
+          make_latest: true
+          files: noor.apk
+          body: Android APK built from ${{ github.sha }}. Install by opening the file on your phone.
 
   website:
     needs: android
@@ -62,14 +71,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
-        with:
-          name: noor-apk
       - name: Build website
         run: npm run site:build
         env:
           SITE_BASE: ''
-          APK_PATH: noor.apk
+          APK_URL: https://github.com/${{ github.repository }}/releases/latest/download/noor.apk
       - uses: actions/upload-artifact@v4
         with:
           name: noor-website
@@ -84,10 +90,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist/site --project-name=noor --branch=main
-      - name: Publish APK as a GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Noor build ${{ github.run_number }}
-          files: noor.apk
-          body: Android APK built from ${{ github.sha }}. Install by opening the file on your phone.

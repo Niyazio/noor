@@ -5,7 +5,8 @@
  *
  * Env:
  *   SITE_BASE  path prefix the site is served under ("" for a domain root, "/noor" for GitHub Pages)
- *   APK_PATH   optional path to a built Android APK to publish at /downloads/noor.apk
+ *   APK_PATH   optional path to a built Android APK to publish at /downloads/noor.apk (≤25 MiB on Cloudflare)
+ *   APK_URL    optional external APK link (e.g. GitHub Releases); takes precedence over APK_PATH
  *
  * Output: dist/site/ (upload anywhere static) and dist/noor-website.zip
  *   /                     download page (detects Android / iPhone / PC)
@@ -102,7 +103,12 @@ fs.mkdirSync(downloads, { recursive: true });
 run(`git archive --format=zip -o "${path.join(downloads, 'noor-source.zip')}" HEAD`);
 let hasApk = false;
 let apkSize = '';
-if (process.env.APK_PATH && fs.existsSync(process.env.APK_PATH)) {
+// APK_URL links to an APK hosted elsewhere (e.g. GitHub Releases): Cloudflare Pages caps files at 25 MiB.
+let apkUrl = `${base}/downloads/noor.apk`;
+if (process.env.APK_URL) {
+  apkUrl = process.env.APK_URL;
+  hasApk = true;
+} else if (process.env.APK_PATH && fs.existsSync(process.env.APK_PATH)) {
   fs.copyFileSync(process.env.APK_PATH, path.join(downloads, 'noor.apk'));
   hasApk = true;
   apkSize = ` (${Math.round(fs.statSync(process.env.APK_PATH).size / 1048576)} MB)`;
@@ -113,7 +119,7 @@ fs.writeFileSync(
   path.join(out, 'index.html'),
   fs.readFileSync(path.join(root, 'web/landing/index.html'), 'utf8')
     .replaceAll('{{BASE}}', base)
-    .replaceAll('{{APK_URL}}', `${base}/downloads/noor.apk`)
+    .replaceAll('{{APK_URL}}', apkUrl)
     .replaceAll('{{APK_SIZE}}', apkSize)
     .replaceAll('{{HAS_APK}}', String(hasApk))
     .replaceAll('{{VERSION}}', pkg.version),

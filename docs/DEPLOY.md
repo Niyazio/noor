@@ -24,9 +24,12 @@ To update later: **Create new deployment** in the same project and upload the ne
 
 `.github/workflows/release.yml` runs on every push to `main`:
 1. builds the Android APK on GitHub’s servers (Android SDK is pre-installed there),
-2. builds the website with the APK included,
-3. deploys it to Cloudflare Pages project `noor`,
-4. attaches `noor.apk` to a GitHub Release.
+2. publishes `noor.apk` as the latest GitHub Release (Cloudflare Pages limits files to 25 MiB, so the APK
+   is not stored inside the site),
+3. builds the website, whose “Download APK” button points to
+   `https://github.com/<you>/<repo>/releases/latest/download/noor.apk`,
+4. deploys it to Cloudflare Pages project `noor`.
+The repository must be **public** for visitors to download the APK from Releases.
 
 Setup once:
 1. Create a GitHub repository and push this project to `main`.
@@ -47,8 +50,9 @@ npm install
 npx eas-cli@latest login            # free Expo account
 npx eas-cli@latest build --platform android --profile preview
 ```
-EAS prints a download link and QR code for the APK (~15–25 min). Put the APK in the site with
-`APK_PATH=path/to/app.apk npm run site:build`, then upload the folder again (Option A).
+EAS prints a download link and QR code for the APK (~15–25 min). To show it on the download page, rebuild with
+`APK_URL=<that link> npm run site:build` and upload the folder again (Option A). Only use
+`APK_PATH=path/to/app.apk` if the file is under 25 MiB (Cloudflare Pages’ per-file limit).
 
 ## Platform notes
 
