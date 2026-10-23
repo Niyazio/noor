@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AppText, Card, Divider, ListRow, Screen, SectionHeader } from '@/components/ui';
 import brand from '@/config/brand.json';
+import { useInstallPrompt } from '@/features/pwa/install';
 import { LANGUAGES } from '@/i18n/languages';
 import { useSettings } from '@/store/settings';
 
@@ -11,11 +12,24 @@ export default function MoreScreen() {
   const { t } = useTranslation();
   const language = useSettings((s) => s.language);
   const location = useSettings((s) => s.location);
+  const pwa = useInstallPrompt();
+  const showInstall = !pwa.installed && (pwa.canInstall || pwa.ios);
   return (
     <Screen>
       <AppText variant="title" accessibilityRole="header">
         {t('more.title')}
       </AppText>
+
+      {showInstall ? (
+        <Card style={{ paddingVertical: 4 }}>
+          <ListRow
+            icon="download-outline"
+            title={t('more.install')}
+            subtitle={pwa.ios ? t('more.installIos') : t('more.installHint')}
+            onPress={pwa.canInstall ? pwa.install : undefined}
+          />
+        </Card>
+      ) : null}
 
       <SectionHeader title={t('more.features')} />
       <Card style={{ paddingVertical: 4 }}>

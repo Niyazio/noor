@@ -89,3 +89,19 @@ describe('Qibla', () => {
     expect(headingQuality(null, 'android')).toBe('unavailable');
   });
 });
+
+describe('compass declination (web)', () => {
+  const { magneticDeclination, magneticToTrue } = jest.requireActual('@/features/qibla/qibla') as typeof import('@/features/qibla/qibla');
+  it('uses the World Magnetic Model', () => {
+    const date = new Date('2026-10-23');
+    const ny = magneticDeclination(40.71, -74.0, date)!;
+    expect(ny).toBeLessThan(-11);
+    expect(ny).toBeGreaterThan(-14);
+    expect(Math.abs(magneticDeclination(12.97, 77.59, date)!)).toBeLessThan(3);
+    expect(magneticDeclination(0, 0, new Date('1990-01-01'))).toBeNull();
+  });
+  it('converts magnetic to true headings', () => {
+    expect(magneticToTrue(350, 15)).toBe(5);
+    expect(magneticToTrue(10, -12.5)).toBeCloseTo(357.5);
+  });
+});

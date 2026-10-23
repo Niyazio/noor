@@ -5,15 +5,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState, Linking, Platform, ScrollView, View } from 'react-native';
 
-import { AppText, Button, Card, Chip, Divider, Notice, Screen, SectionHeader, Segmented, ToggleRow } from '@/components/ui';
+import { AppText, Button, Card, Chip, Divider, Notice, Screen, SectionHeader, ToggleRow } from '@/components/ui';
 import { NOTIFICATION_ID_PREFIX } from '@/features/notifications/plan';
 import {
   getExactAlarmStatus, requestExactAlarm, requestNotificationPermission, sendTestNotification,
 } from '@/features/notifications/scheduler';
+import { bundledAdhanSound } from '@/features/azan/bundledSound';
+import { WebAzanSettings } from '@/features/azan/WebAzanSettings';
 import { PRAYER_NAMES } from '@/features/prayer/types';
 import { useSettings, type AlertMode } from '@/store/settings';
 
 const REMINDER_OPTIONS = [null, 5, 10, 15, 20, 30] as const;
+const IS_WEB = Platform.OS === 'web';
+const MODES: readonly AlertMode[] = IS_WEB ? ['off', 'adhan', 'silent'] : ['off', 'adhan', 'sound', 'vibrate', 'silent'];
 
 export default function NotificationSettingsScreen() {
   const { t } = useTranslation();
@@ -35,6 +39,7 @@ export default function NotificationSettingsScreen() {
       };
     },
     staleTime: 0,
+    enabled: !IS_WEB,
   });
   const { refetch } = status;
   const refresh = useCallback(() => void refetch(), [refetch]);
@@ -49,6 +54,11 @@ export default function NotificationSettingsScreen() {
   return (
     <Screen edges={['bottom']}>
       <Stack.Screen options={{ title: t('notifications.title') }} />
+      {IS_WEB ? <WebAzanSettings /> : (
+        <Notice icon={bundledAdhanSound() ? 'musical-notes' : 'information-circle-outline'}>
+          {bundledAdhanSound() ? t('azan.bundled') : t('azan.notBundled')}
+        </Notice>
+      )}
 
       {permission === 'denied' ? (
         <Notice tone="warning">
@@ -64,12 +74,12 @@ export default function NotificationSettingsScreen() {
         return (
           <Card key={p} style={{ gap: 10 }}>
             <AppText variant="heading">{t(`prayer.names.${p}`)}</AppText>
-            <Segmented<AlertMode>
-              value={pref.mode}
-              onChange={(mode) => setPrayerAlert(p, { mode })}
-              options={(['off', 'sound', 'vibrate', 'silent'] as const).map((m) => ({ value: m, label: t(`notifications.modes.${m}`) }))}
-            />
-            {pref.mode !== 'off' ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {MODES.map((m) => (
+                <Chip key={m} label={t(`notifications.modes.${m}`)} selected={pref.mode === m} onPress={() => setPrayerAlert(p, { mode: m })} />
+              ))}
+            </ScrollView>
+            {pref.mode !== 'off' && !IS_WEB ? (
               <View style={{ gap: 6 }}>
                 <AppText variant="caption" tone="muted">
                   {t('notifications.reminderBefore')}
@@ -123,25 +133,29 @@ export default function NotificationSettingsScreen() {
         </>
       ) : null}
 
-      <Notice tone="warning" icon="volume-high-outline">
-        {t('notifications.adhanLimitation')}
-      </Notice>
+      {IS_WEB ? null : (
+        <Notice tone="warning" icon="volume-high-outline">
+          {t('notifications.adhanLimitation')}
+        </Notice>
+      )}
 
-      {pending != null && permission === 'granted' ? (
+      {IS_WEB ? null : pending != null && permission === 'granted' ? (
         <AppText variant="caption" tone="muted" align="center">
           {t('notifications.scheduled', { count: pending })}
         </AppText>
       ) : null}
-      <Button
-        variant="secondary"
-        icon="paper-plane-outline"
-        title={testSent ? t('notifications.testSent') : t('notifications.sendTest')}
-        disabled={permission !== 'granted'}
-        onPress={async () => {
-          await sendTestNotification('sound');
-          setTestSent(true);
-        }}
-      />
+      {IS_WEB ? null : (
+        <Button
+          variant="secondary"
+          icon="paper-plane-outline"
+          title={testSent ? t('notifications.testSent') : t('notifications.sendTest')}
+          disabled={permission !== 'granted'}
+          onPress={async () => {
+            await sendTestNotification('adhan');
+            setTestSent(true);
+          }}
+        />
+      )}
     </Screen>
   );
 }

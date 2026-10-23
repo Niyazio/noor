@@ -33,15 +33,18 @@ run(`npx expo export --platform web --output-dir "${appDir}"`, { EXPO_BASE_URL: 
 // 2. Icons + manifest
 fs.cpSync(path.join(root, 'web/icons'), path.join(appDir, 'icons'), { recursive: true });
 const scope = `${base}/app/`;
+// One manifest + service worker for the whole site, so installing from the download page installs
+// the app (start_url /app/) instead of creating a browser bookmark.
+const siteScope = `${base}/`;
 fs.writeFileSync(
-  path.join(appDir, 'manifest.webmanifest'),
+  path.join(out, 'manifest.webmanifest'),
   JSON.stringify(
     {
       name: `${brand.appName} — ${brand.tagline}`,
       short_name: brand.appName,
       id: scope,
       start_url: scope,
-      scope,
+      scope: siteScope,
       display: 'standalone',
       orientation: 'portrait',
       background_color: brand.colors.ivory,
@@ -69,14 +72,16 @@ const walk = (dir) => {
 walk(appDir);
 const precache = files
   .filter((f) => !/vector-icons\/.*Fonts\/(?!Ionicons)/.test(f))
-  .filter((f) => !/(^|\/)(metadata\.json|sw\.js)$/.test(f))
-  .map((f) => `${scope}${f}`);
+  .filter((f) => !/(^|\/)(metadata\.json|sw\.js|404\.html)$/.test(f))
+  .map((f) => `${scope}${f}`)
+  .concat([siteScope]);
 const version = `${pkg.version}-${Date.now().toString(36)}`;
 fs.writeFileSync(
-  path.join(appDir, 'sw.js'),
+  path.join(out, 'sw.js'),
   fs.readFileSync(path.join(root, 'web/sw.js'), 'utf8')
     .replaceAll('__VERSION__', version)
     .replaceAll('__SCOPE__', scope)
+    .replaceAll('__SITE__', siteScope)
     .replaceAll('__PRECACHE__', JSON.stringify(precache)),
 );
 
@@ -84,14 +89,14 @@ fs.writeFileSync(
 const indexPath = path.join(appDir, 'index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 const head = `
-    <link rel="manifest" href="${scope}manifest.webmanifest" />
+    <link rel="manifest" href="${siteScope}manifest.webmanifest" />
     <meta name="theme-color" content="${brand.colors.emerald}" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="${brand.appName}" />
     <link rel="apple-touch-icon" href="${scope}icons/apple-touch-icon.png" />
-    <script>if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('${scope}sw.js', { scope: '${scope}' }).catch(function () {}); });</script>
+    <script>if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('${siteScope}sw.js', { scope: '${siteScope}' }).catch(function () {}); });</script>
   </head>`;
 html = html.replace('</head>', head).replace(/<title>[^<]*<\/title>/, `<title>${brand.appName}</title>`);
 html = html.replace('content="width=device-width, initial-scale=1, shrink-to-fit=no"', 'content="width=device-width, initial-scale=1, viewport-fit=cover"');
@@ -136,7 +141,7 @@ fs.writeFileSync(
     {
       rewrites: [{ source: '/app/:path((?!.*\\.).*)', destination: '/app/index.html' }],
       headers: [
-        { source: '/app/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+        { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
         { source: '/downloads/(.*).apk', headers: [{ key: 'Content-Type', value: 'application/vnd.android.package-archive' }] },
       ],
     },
@@ -147,7 +152,7 @@ fs.writeFileSync(
 // Cloudflare Pages / Netlify response headers.
 fs.writeFileSync(
   path.join(out, '_headers'),
-  `${base}/app/sw.js\n  Cache-Control: no-cache\n${base}/downloads/*.apk\n  Content-Type: application/vnd.android.package-archive\n  Content-Disposition: attachment; filename="noor.apk"\n`,
+  `${base}/sw.js\n  Cache-Control: no-cache\n${base}/manifest.webmanifest\n  Content-Type: application/manifest+json\n${base}/downloads/*.apk\n  Content-Type: application/vnd.android.package-archive\n  Content-Disposition: attachment; filename="noor.apk"\n`,
 );
 fs.copyFileSync(indexPath, path.join(out, '404.html')); // GitHub Pages fallback for deep links
 fs.writeFileSync(path.join(out, '.nojekyll'), '');

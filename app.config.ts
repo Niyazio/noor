@@ -1,6 +1,18 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 import brand from './src/config/brand.json';
+
+/**
+ * Optional Azan recordings (see docs/AZAN.md). Only licensed recordings should be added.
+ * Android: assets/sounds/adhan.mp3 (any length, played in full as the alert sound).
+ * iOS: assets/sounds/adhan.wav or adhan.caf (iOS plays at most 30 seconds).
+ */
+const soundFile = (...names: string[]) => names.find((n) => fs.existsSync(path.join(__dirname, 'assets/sounds', n))) ?? null;
+const adhanAndroid = soundFile('adhan.mp3', 'adhan.wav', 'adhan.ogg');
+const adhanIos = soundFile('adhan.caf', 'adhan.wav', 'adhan.aiff');
+const notificationSounds = [...new Set([adhanAndroid, adhanIos].filter((f): f is string => !!f))].map((f) => `./assets/sounds/${f}`);
 
 /**
  * Branding (name, identifiers, colours) lives in src/config/brand.json so it can be
@@ -84,8 +96,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-notifications',
       {
         color: brand.colors.emerald,
-        // Licensed Adhan clips (iOS: <= 30 s, .caf/.wav/.aiff) go in assets/sounds and are listed here.
-        sounds: [],
+        sounds: notificationSounds,
       },
     ],
     ['expo-audio', { microphonePermission: false, enableBackgroundPlayback: true }],
@@ -97,5 +108,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Public values only. Never place a Supabase service-role key here.
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? null,
     contentCdnUrl: process.env.EXPO_PUBLIC_CONTENT_CDN_URL ?? null,
+    adhanSoundAndroid: adhanAndroid,
+    adhanSoundIos: adhanIos,
   },
 });

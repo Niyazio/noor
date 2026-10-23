@@ -1,63 +1,20 @@
-import * as Location from 'expo-location';
 import { router, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import { AppText, Button, Card, EmptyState, Notice, Screen } from '@/components/ui';
-import { angleDelta, distanceToKaabaKm, headingQuality, qiblaBearing, type HeadingQuality } from '@/features/qibla/qibla';
+import { angleDelta, distanceToKaabaKm, qiblaBearing } from '@/features/qibla/qibla';
+import { useHeading } from '@/features/qibla/useHeading';
 import { useSettings } from '@/store/settings';
 import { useTheme } from '@/theme/ThemeProvider';
-
-type HeadingState =
-  | { status: 'starting' }
-  | { status: 'no-permission' }
-  | { status: 'unavailable' }
-  | { status: 'ok'; trueHeading: number; quality: HeadingQuality };
-
-/** Live true-north heading. Reports "unavailable" rather than guessing. */
-function useTrueHeading(): HeadingState {
-  const [state, setState] = useState<HeadingState>({ status: 'starting' });
-  useEffect(() => {
-    let sub: Location.LocationSubscription | null = null;
-    let cancelled = false;
-    let received = false;
-    // Devices without a magnetometer may never emit a heading (and never throw).
-    const timeout = setTimeout(() => {
-      if (!received && !cancelled) setState({ status: 'unavailable' });
-    }, 5000);
-    (async () => {
-      const perm = await Location.requestForegroundPermissionsAsync();
-      if (cancelled) return;
-      if (perm.status !== 'granted') return setState({ status: 'no-permission' });
-      try {
-        sub = await Location.watchHeadingAsync((h) => {
-          received = true;
-          const quality = headingQuality(h.accuracy, Platform.OS);
-          // trueHeading is -1 when the platform cannot resolve true north.
-          if (h.trueHeading == null || h.trueHeading < 0 || quality === 'unavailable') setState({ status: 'unavailable' });
-          else setState({ status: 'ok', trueHeading: h.trueHeading, quality });
-        });
-      } catch {
-        setState({ status: 'unavailable' });
-      }
-    })();
-    return () => {
-      cancelled = true;
-      clearTimeout(timeout);
-      sub?.remove();
-    };
-  }, []);
-  return state;
-}
 
 export default function QiblaScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const location = useSettings((s) => s.location);
-  const heading = useTrueHeading();
+  const heading = useHeading(location?.latitude ?? 0, location?.longitude ?? 0);
 
   if (!location) {
     return (
@@ -97,6 +54,13 @@ export default function QiblaScreen() {
           </>
         ) : heading.status === 'starting' ? (
           <AppText tone="muted">{t('common.loading')}</AppText>
+        ) : heading.status === 'needs-permission' ? (
+          <EmptyState
+            icon="compass-outline"
+            title={t('qibla.enableCompass')}
+            body={t('qibla.enableCompassBody')}
+            action={<Button icon="compass" title={t('qibla.enableCompass')} onPress={heading.request} />}
+          />
         ) : (
           <EmptyState
             icon="compass-outline"

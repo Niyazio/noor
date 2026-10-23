@@ -1,6 +1,8 @@
 /* Noor web app service worker (offline support). Placeholders are filled by scripts/web/build-site.mjs. */
 const CACHE = 'noor-__VERSION__';
-const SCOPE = '__SCOPE__';
+const SCOPE = '__SCOPE__'; // app path, e.g. /app/
+const SITE = '__SITE__'; // site root, e.g. /
+// eslint-disable-next-line no-undef -- replaced with a JSON array at build time
 const PRECACHE = __PRECACHE__;
 
 self.addEventListener('install', (event) => {
@@ -18,10 +20,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  // App routes (e.g. /app/quran/2) are client-side: serve the app shell, network first.
+  // Pages: network first; offline, app routes (e.g. /app/quran/2) get the app shell and the
+  // download page gets its cached copy.
   if (req.mode === 'navigate') {
+    const inApp = new URL(req.url).pathname.startsWith(SCOPE);
     event.respondWith(
-      fetch(req).catch(() => caches.match(SCOPE + 'index.html', { cacheName: CACHE })),
+      fetch(req).catch(() => caches.match(inApp ? SCOPE + 'index.html' : SITE, { cacheName: CACHE })),
     );
     return;
   }

@@ -4,7 +4,7 @@ import type { AlertMode, NotificationSettings } from '@/store/settings';
 
 /** Android channel ids. Channel sound/vibration is immutable once created, so ids are versioned. */
 export const CHANNELS = {
-  adhan: 'prayer-sound-v1',
+  sound: 'prayer-sound-v1',
   silent: 'prayer-silent-v1',
   vibrate: 'prayer-vibrate-v1',
   reminder: 'prayer-reminder-v1',
@@ -39,9 +39,18 @@ export function inQuietHours(date: Date, timeZone: string, quiet: NotificationSe
   return start <= end ? t >= start && t < end : t >= start || t < end;
 }
 
-function channelFor(mode: Exclude<AlertMode, 'off'>, kind: PlannedNotification['kind']) {
+/**
+ * Android notification channels cannot change their sound after creation, so the Azan channel id
+ * includes the bundled sound's file name (or "default" when no Azan recording is bundled).
+ */
+export function adhanChannelId(soundFile: string | null): string {
+  return `prayer-adhan-${(soundFile ?? 'default').replace(/[^a-z0-9]/gi, '_').toLowerCase()}-v1`;
+}
+
+function channelFor(mode: Exclude<AlertMode, 'off'>, kind: PlannedNotification['kind'], adhanChannel: string) {
   if (kind === 'reminder') return CHANNELS.reminder;
-  return mode === 'sound' ? CHANNELS.adhan : mode === 'vibrate' ? CHANNELS.vibrate : CHANNELS.silent;
+  if (mode === 'adhan') return adhanChannel;
+  return mode === 'sound' ? CHANNELS.sound : mode === 'vibrate' ? CHANNELS.vibrate : CHANNELS.silent;
 }
 
 /**
@@ -54,6 +63,7 @@ export function planPrayerNotifications(
   timeZone: string,
   now: Date,
   limit = MAX_PENDING_PRAYER_NOTIFICATIONS,
+  adhanChannel = adhanChannelId(null),
 ): PlannedNotification[] {
   const planned: PlannedNotification[] = [];
   for (const day of days) {
@@ -62,15 +72,16 @@ export function planPrayerNotifications(
       const pref = settings.prayers[prayer];
       if (!pref || pref.mode === 'off') continue;
       const at = day.times[prayer];
-      // Quiet hours downgrade sound to a silent notification; they never drop a prayer alert.
-      const mode = pref.mode === 'sound' && inQuietHours(at, timeZone, settings.quietHours) ? 'silent' : pref.mode;
+      // Quiet hours downgrade audible alerts to silent notifications; they never drop a prayer alert.
+      const audible = pref.mode === 'sound' || pref.mode === 'adhan';
+      const mode = audible && inQuietHours(at, timeZone, settings.quietHours) ? 'silent' : pref.mode;
       planned.push({
         id: `${NOTIFICATION_ID_PREFIX}${key}.${prayer}.at`,
         prayer,
         kind: 'at-time',
         mode,
         fireDate: at,
-        channelId: channelFor(mode, 'at-time'),
+        channelId: channelFor(mode, 'at-time', adhanChannel),
       });
       if (pref.reminderMinutes && pref.reminderMinutes > 0) {
         planned.push({

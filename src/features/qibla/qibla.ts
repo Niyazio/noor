@@ -52,3 +52,21 @@ export function headingQuality(accuracy: number | null | undefined, platform: 'i
   if (accuracy === 1) return 'poor';
   return 'unavailable';
 }
+
+/**
+ * Magnetic declination (degrees, east positive) from NOAA's World Magnetic Model, or null when the
+ * date is outside the bundled model's validity. True heading = magnetic heading + declination.
+ */
+export function magneticDeclination(latitude: number, longitude: number, date = new Date()): number | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const geomagnetism = require('geomagnetism') as { model: (d: Date) => { point: (p: [number, number]) => { decl: number } } };
+    return geomagnetism.model(date).point([latitude, longitude]).decl;
+  } catch {
+    return null;
+  }
+}
+
+export function magneticToTrue(magneticHeading: number, declination: number): number {
+  return (((magneticHeading + declination) % 360) + 360) % 360;
+}

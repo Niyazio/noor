@@ -42,3 +42,15 @@ restored → Prayer (timetable, week, method notice) → Dhikr (3 taps, ring pro
 - Physical Android/iOS testing (notifications in background/terminated/reboot, compass, haptics, RTL layout,
   screen readers, font scaling, small/large devices) — see `docs/NOTIFICATIONS.md` matrix.
 - Maestro/Detox E2E on devices; performance profiling; store builds.
+
+## Round 3 (Mushaf, audio, themes, web install) — run on 2026-10-23
+
+- `npm test`: 6 suites, **72 passed** (adds: all 604 Mushaf pages cover 6,236 ayahs, quarter marks, audio
+  queue/repeat/basmala/continuous logic, recitation URL formats, Azan channel routing, WMM declination).
+- `tsc` clean; ESLint 0 errors; Android + iOS Hermes bundles build.
+- Browser QA (Chromium, Pixel 7 profile, no special server headers): Chrome reports the download page
+  **installable with zero installability errors**; Mushaf page 531 renders Al-Qamar 50–55 and Ar-Rahman with
+  banner/basmala/ayah markers and header “JUZ 27 · 531 · 55 AR-RAHMAAN”; page arrows 531→532→531; reading
+  themes cycle; translation cards; Azan preview plays (chime); Qibla shows bearing and “Compass unavailable” on a
+  sensor-less browser; audio shows a clear network error (servers unreachable from the build sandbox).
+- **Not tested:** real recitation playback, real compass, Azan with the app closed — need a phone.

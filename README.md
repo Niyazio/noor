@@ -25,6 +25,14 @@ iPhone and PC, and the Android APK when available. Upload to Cloudflare Pages (d
 
 ## What works today
 
+- **Mushaf reader** — 604-page Madani layout swiped right-to-left like a printed Quran, ornamental ayah markers,
+  surah banners, juz/page header; or verse cards with translation, share, play and bookmark per ayah.
+- **Recitation** — 4 reciters (sources in `docs/AUDIO.md`), play from any ayah, highlight + auto page-turn,
+  repeat ayah, speed, continuous play, background/lock-screen playback.
+- **Themes** — app: Emerald, Lavender, Sand, Slate (each light/dark/AMOLED); reading: Classic Mushaf, Emerald,
+  Lavender, Night.
+- **Azan** — per-prayer Azan/Tone/Vibrate/Silent; add your own licensed recording (`docs/AZAN.md`).
+
 - **Quran** — 114 surahs, juz navigation, reader with translations (en/ur/hi), deep links to any ayah,
   bookmarks (named collections), private notes, copy/share with reference and source, automatic last-read,
   reading history, daily goal, khatm %, search by surah/reference/Arabic (diacritic-insensitive)/translation.
@@ -49,4 +57,5 @@ widgets, mosque finder. These depend on licensed content or later phases — see
 - `docs/NOTIFICATIONS.md` — Android/iOS behaviour, limitations, device test matrix
 - `docs/QA.md` — what was tested and how
 - `docs/DEPLOY.md` — website, web app and APK publishing
+- `docs/AZAN.md`, `docs/AUDIO.md` — Azan sound setup; recitation sources
 - `docs/CONTENT_REVIEW.md`, `docs/LOCALIZATION.md` — items needing human review

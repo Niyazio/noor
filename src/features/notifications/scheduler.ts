@@ -7,7 +7,8 @@ import type { PrayerLocation, PrayerSettings } from '@/features/prayer/types';
 import type { NotificationSettings } from '@/store/settings';
 import i18n from '@/i18n';
 import { formatTime } from '@/lib/time';
-import { CHANNELS, NOTIFICATION_ID_PREFIX, diffSchedule, planPrayerNotifications } from './plan';
+import { bundledAdhanSound } from '@/features/azan/bundledSound';
+import { CHANNELS, NOTIFICATION_ID_PREFIX, adhanChannelId, diffSchedule, planPrayerNotifications } from './plan';
 
 /** Days ahead to plan. The planner caps the total to stay below the iOS pending limit. */
 const PLAN_DAYS = 7;
@@ -23,7 +24,16 @@ export type SyncResult =
 export async function ensureAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
   const t = i18n.t.bind(i18n);
-  await Notifications.setNotificationChannelAsync(CHANNELS.adhan, {
+  const adhan = bundledAdhanSound();
+  await Notifications.setNotificationChannelAsync(adhanChannelId(adhan), {
+    name: t('notifications.channel.adhan'),
+    importance: AndroidImportance.MAX,
+    // Android plays the whole file for a channel sound, so a bundled Azan plays in full.
+    sound: adhan ?? 'default',
+    vibrationPattern: [0, 400, 200, 400],
+    lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
+  });
+  await Notifications.setNotificationChannelAsync(CHANNELS.sound, {
     name: t('notifications.channel.sound'),
     importance: AndroidImportance.MAX,
     sound: 'default',
@@ -101,7 +111,8 @@ async function runSync({
     await ensureAndroidChannels();
 
     const days = calculateRange(location, prayer, now, PLAN_DAYS);
-    const planned = planPrayerNotifications(days, notifications, location.timezone, now);
+    const adhan = bundledAdhanSound();
+    const planned = planPrayerNotifications(days, notifications, location.timezone, now, undefined, adhanChannelId(adhan));
     const pendingRequests = await Notifications.getAllScheduledNotificationsAsync();
     const pending = pendingRequests.map((r) => ({
       id: r.identifier,
@@ -125,9 +136,10 @@ async function runSync({
                 ? t('notifications.sunriseTitle')
                 : t('notifications.prayerTitle', { prayer: prayerLabel }),
           body: t('notifications.body', { prayer: prayerLabel, time }),
-          sound: n.mode === 'sound' ? 'default' : false,
+          // iOS plays a bundled sound of up to 30 s; Android uses the channel's sound.
+          sound: n.mode === 'adhan' ? (adhan ?? 'default') : n.mode === 'sound' ? 'default' : false,
           data: { fireTime: n.fireDate.getTime(), prayer: n.prayer, kind: n.kind, url: '/prayer' },
-          ...(Platform.OS === 'ios' && n.kind === 'at-time' && n.mode === 'sound'
+          ...(Platform.OS === 'ios' && n.kind === 'at-time' && (n.mode === 'sound' || n.mode === 'adhan')
             ? { interruptionLevel: 'timeSensitive' as const }
             : {}),
         },
@@ -161,15 +173,21 @@ export async function cancelAllPrayerNotifications(): Promise<void> {
 }
 
 /** Fires a test notification after a few seconds so users can check sound/vibration settings. */
-export async function sendTestNotification(mode: 'sound' | 'silent' | 'vibrate'): Promise<void> {
+export async function sendTestNotification(mode: 'adhan' | 'sound' | 'silent' | 'vibrate'): Promise<void> {
   await ensureAndroidChannels();
   const t = i18n.t.bind(i18n);
+  const adhan = bundledAdhanSound();
   await Notifications.scheduleNotificationAsync({
-    content: { title: t('notifications.testTitle'), body: t('notifications.testBody'), sound: mode === 'sound' ? 'default' : false },
+    content: {
+      title: t('notifications.testTitle'),
+      body: t('notifications.testBody'),
+      sound: mode === 'adhan' ? (adhan ?? 'default') : mode === 'sound' ? 'default' : false,
+    },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 5,
-      channelId: mode === 'sound' ? CHANNELS.adhan : mode === 'vibrate' ? CHANNELS.vibrate : CHANNELS.silent,
+      channelId:
+        mode === 'adhan' ? adhanChannelId(adhan) : mode === 'sound' ? CHANNELS.sound : mode === 'vibrate' ? CHANNELS.vibrate : CHANNELS.silent,
     },
   });
 }

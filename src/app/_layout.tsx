@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppText, Button } from '@/components/ui';
 import { queryClient } from '@/data/queries';
 import { ContentIntegrityError, openDatabases } from '@/db';
+import { AzanWatcher } from '@/features/azan/AzanWatcher';
 import { NotificationSync } from '@/features/notifications/NotificationSync';
 import '@/features/notifications/backgroundTask';
 import i18n, { applyLanguage } from '@/i18n';
@@ -103,6 +104,7 @@ function AppNavigator() {
         <Stack.Screen name="quran/[surah]" options={{ headerShown: false }} />
         <Stack.Screen name="dhikr/focus" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       </Stack>
+      <AzanWatcher />
     </>
   );
 }

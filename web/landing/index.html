@@ -8,6 +8,14 @@
   <meta name="theme-color" content="#0F5E4A" />
   <link rel="icon" href="{{BASE}}/app/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="{{BASE}}/app/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="{{BASE}}/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Noor" />
+  <script>
+    // Launched from the home screen / as an installed app → open the app itself.
+    if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) location.replace('{{BASE}}/app/');
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -80,6 +88,7 @@
     </div>
     <div class="cta">
       <a class="btn btn-primary" id="hero-primary" href="{{BASE}}/app/">Open Noor</a>
+      <button class="btn btn-primary" id="install-btn" type="button" hidden>Install app</button>
       <a class="btn btn-secondary" href="#install">Install on your device</a>
     </div>
   </section>
@@ -93,7 +102,7 @@
         <li>Open the downloaded file. If asked, allow <em>Install unknown apps</em> for your browser.</li>
         <li>Tap <strong>Install</strong>, then open Noor.</li>
       </ol>
-      <div class="note" data-apk-missing hidden>The Android APK for this version is not published yet. Use the web app below meanwhile.</div>
+      <div class="note" data-apk-missing hidden>The Android APK for this version is not published yet. Meanwhile tap <strong>Install app</strong> at the top to install the web version.</div>
       <div class="actions">
         <a class="btn btn-primary" data-apk href="{{APK_URL}}" download>Download APK{{APK_SIZE}}</a>
         <a class="btn btn-secondary" href="{{BASE}}/app/">Use web app</a>
@@ -103,9 +112,9 @@
     <article class="card" data-platform="ios">
       <h3>iPhone &amp; iPad <span class="badge" hidden>Your device</span></h3>
       <ol>
-        <li>Open this page in <strong>Safari</strong> and tap <strong>Open web app</strong>.</li>
+        <li>Open this page in <strong>Safari</strong> (not inside another app’s browser).</li>
         <li>Tap the <strong>Share</strong> button (square with arrow).</li>
-        <li>Choose <strong>Add to Home Screen</strong> → <strong>Add</strong>.</li>
+        <li>Choose <strong>Add to Home Screen</strong> → <strong>Add</strong>. Noor opens full-screen from its own icon.</li>
       </ol>
       <div class="actions">
         <a class="btn btn-primary" href="{{BASE}}/app/">Open web app</a>
@@ -115,8 +124,7 @@
     <article class="card" data-platform="desktop">
       <h3>PC &amp; Mac <span class="badge" hidden>Your device</span></h3>
       <ol>
-        <li>Open the web app in <strong>Chrome</strong> or <strong>Edge</strong>.</li>
-        <li>Click the <strong>Install</strong> icon in the address bar (or menu → <em>Install Noor</em>).</li>
+        <li>In <strong>Chrome</strong> or <strong>Edge</strong>, click <strong>Install app</strong> above (or the install icon in the address bar).</li>
         <li>Noor opens in its own window and appears in your Start menu / Applications.</li>
       </ol>
       <div class="actions">
@@ -166,6 +174,20 @@
       card.querySelector('.badge').hidden = false;
       card.parentNode.insertBefore(card, card.parentNode.firstChild);
     }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('{{BASE}}/sw.js', { scope: '{{BASE}}/' }).catch(function () {});
+    var deferred = null;
+    var installBtn = document.getElementById('install-btn');
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+      installBtn.hidden = false;
+    });
+    installBtn.addEventListener('click', function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function () { deferred = null; installBtn.hidden = true; });
+    });
+    window.addEventListener('appinstalled', function () { installBtn.hidden = true; });
     var hasApk = '{{HAS_APK}}' === 'true';
     var apk = document.querySelector('[data-apk]');
     if (!hasApk) {

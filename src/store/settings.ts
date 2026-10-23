@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { LanguageCode } from '@/i18n/languages';
-import type { Accent, DarkStyle, ThemeMode } from '@/theme/themes';
+import type { Accent, DarkStyle, ReadingThemeId, ThemeMode } from '@/theme/themes';
 import type { PrayerSettings, PrayerName } from '@/features/prayer/types';
 import { DEFAULT_PRAYER_SETTINGS } from '@/features/prayer/types';
 import type { SavedLocation } from '@/features/location/types';
@@ -10,7 +10,9 @@ import { kvStorage } from './kvStorage';
 
 export type ArabicFont = 'amiri' | 'scheherazade';
 export type TimeFormat = '12h' | '24h';
-export type AlertMode = 'off' | 'sound' | 'silent' | 'vibrate';
+/** `adhan` plays the Azan recording (when one is installed), `sound` the default notification tone. */
+export type AlertMode = 'off' | 'adhan' | 'sound' | 'silent' | 'vibrate';
+export type ReaderMode = 'mushaf' | 'translation';
 
 export interface ReadingSettings {
   arabicFont: ArabicFont;
@@ -21,6 +23,20 @@ export interface ReadingSettings {
   showTranslation: boolean;
   translationIds: string[];
   dailyGoalAyahs: number;
+  /** Mushaf (page by page, like a printed Quran) or verse cards with translation. */
+  mode: ReaderMode;
+  theme: ReadingThemeId;
+}
+
+export interface AudioSettings {
+  reciterId: string;
+  speed: number;
+  /** Times each ayah is played (1 = once). 0 = repeat forever. */
+  repeatAyah: number;
+  /** Continue into the next surah when one ends. */
+  continuous: boolean;
+  /** Play the Azan inside the app at prayer time while the app is open. */
+  inAppAdhan: boolean;
 }
 
 export interface PrayerAlertSettings {
@@ -52,6 +68,7 @@ export interface SettingsState {
   timeFormat: TimeFormat;
   haptics: boolean;
   reading: ReadingSettings;
+  audio: AudioSettings;
   prayer: PrayerSettings;
   location: SavedLocation | null;
   notifications: NotificationSettings;
@@ -61,7 +78,7 @@ export interface SettingsState {
   analyticsOptIn: boolean;
 
   set: <K extends keyof SettingsData>(key: K, value: SettingsData[K]) => void;
-  update: <K extends 'reading' | 'prayer' | 'notifications' | 'dashboard'>(
+  update: <K extends 'reading' | 'audio' | 'prayer' | 'notifications' | 'dashboard'>(
     key: K,
     patch: Partial<SettingsData[K]>,
   ) => void;
@@ -90,17 +107,20 @@ export const DEFAULT_SETTINGS: SettingsData = {
     showTranslation: true,
     translationIds: ['en.shakir'],
     dailyGoalAyahs: 10,
+    mode: 'mushaf',
+    theme: 'auto',
   },
+  audio: { reciterId: 'minshawi_mujawwad', speed: 1, repeatAyah: 1, continuous: true, inAppAdhan: true },
   prayer: DEFAULT_PRAYER_SETTINGS,
   location: null,
   notifications: {
     prayers: {
-      fajr: alert('sound'),
+      fajr: alert('adhan'),
       sunrise: alert('off'),
-      dhuhr: alert('sound'),
-      asr: alert('sound'),
-      maghrib: alert('sound'),
-      isha: alert('sound'),
+      dhuhr: alert('adhan'),
+      asr: alert('adhan'),
+      maghrib: alert('adhan'),
+      isha: alert('adhan'),
     },
     quietHours: { enabled: false, start: '23:00', end: '05:00' },
     androidAlarmClock: false,
@@ -141,6 +161,7 @@ export const useSettings = create<SettingsState>()(
           ...current,
           ...p,
           reading: { ...current.reading, ...p.reading },
+          audio: { ...current.audio, ...p.audio },
           prayer: {
             ...current.prayer,
             ...p.prayer,

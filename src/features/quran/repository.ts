@@ -236,3 +236,49 @@ export function formatAyahForSharing(
   lines.push(`Arabic text: ${datasetName}, tanzil.net`);
   return lines.join('\n');
 }
+
+// ---------------------------------------------------------------------------
+// Mushaf pages (Madani 604-page layout)
+// ---------------------------------------------------------------------------
+
+export const TOTAL_PAGES = 604;
+
+export interface PageAyah {
+  id: number;
+  surah: number;
+  ayah: number;
+  text: string;
+  juz: number;
+  hizb: number;
+  page: number;
+  sajdah: boolean;
+  /** First ayah of a rub‘ al-hizb (quarter) — shown with the ۞ ornament. */
+  rubStart: boolean;
+}
+
+export async function getPageAyahs(db: SqlDb, page: number): Promise<PageAyah[]> {
+  const rows = await db.getAllAsync<{
+    id: number; surah: number; ayah: number; text: string; juz: number; hizb: number; page: number; sajdah: number; rub_start: number;
+  }>(
+    `SELECT a.id, a.surah, a.ayah, a.text, a.juz, a.hizb, a.page, a.sajdah,
+            (a.id = (SELECT MIN(b.id) FROM ayahs b WHERE b.rub = a.rub)) AS rub_start
+     FROM ayahs a WHERE a.page = ? ORDER BY a.id`,
+    page,
+  );
+  return rows.map((r) => ({ ...r, sajdah: r.sajdah === 1, rubStart: r.rub_start === 1 && !(r.surah === 1 && r.ayah === 1) }));
+}
+
+export async function getAyahPage(db: SqlDb, surah: number, ayah: number): Promise<number> {
+  const r = await db.getFirstAsync<{ page: number }>('SELECT page FROM ayahs WHERE surah = ? AND ayah = ?', surah, ayah);
+  return r?.page ?? 1;
+}
+
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+export function toArabicDigits(n: number): string {
+  return String(n).replace(/[0-9]/g, (d) => ARABIC_DIGITS[Number(d)]);
+}
+
+/** Display-only end-of-ayah ornament (U+06DD + Arabic-Indic digits); the stored text is unchanged. */
+export function ayahMarker(ayah: number): string {
+  return `۝${toArabicDigits(ayah)}`;
+}

@@ -1,4 +1,5 @@
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import { getContentDb, getUserDb } from '@/db';
 import * as quran from '@/features/quran/repository';
@@ -149,4 +150,18 @@ export function useSearchHistory() {
 /** Invalidate everything derived from reading progress. */
 export function invalidateReading(qc: QueryClient) {
   for (const k of [keys.lastRead, keys.history, keys.khatm, ['readToday']]) qc.invalidateQueries({ queryKey: k });
+}
+
+export function usePageAyahs(page: number) {
+  return useQuery({ queryKey: ['page', page], queryFn: () => quran.getPageAyahs(getContentDb(), page) });
+}
+
+export function useAyahPage(surah: number, ayah: number) {
+  return useQuery({ queryKey: ['ayahPage', surah, ayah], queryFn: () => quran.getAyahPage(getContentDb(), surah, ayah) });
+}
+
+/** Ids of all bookmarked ayahs (for marking bookmarks across Mushaf pages). */
+export function useBookmarkedIds(): Set<number> {
+  const { data } = useBookmarks();
+  return useMemo(() => new Set((data ?? []).map((b) => b.ayahId)), [data]);
 }

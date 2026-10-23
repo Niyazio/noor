@@ -5,7 +5,11 @@ import path from 'node:path';
 import { CONTENT_MANIFEST } from '@/content/generated/contentManifest';
 import { JUZ_STARTS, SURAHS } from '@/content/generated/surahs';
 import {
+  ayahMarker,
   dailyAyahId,
+  getAyahPage,
+  getPageAyahs,
+  toArabicDigits,
   formatAyahForSharing,
   getSurahAyahs,
   getTranslationEditions,
@@ -179,5 +183,28 @@ describe('Quran navigation and search', () => {
       expect(id).toBeGreaterThanOrEqual(1);
       expect(id).toBeLessThanOrEqual(6236);
     }
+  });
+});
+
+describe('Mushaf pages', () => {
+  it('maps pages to the Madani layout', async () => {
+    const p1 = await getPageAyahs(db, 1);
+    expect(p1.map((a) => a.ayah)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    const p531 = await getPageAyahs(db, 531);
+    expect(new Set(p531.map((a) => a.surah))).toEqual(new Set([54, 55]));
+    expect(p531[0].juz).toBe(27);
+    expect(await getAyahPage(db, 2, 255)).toBe(42);
+    expect(await getAyahPage(db, 114, 6)).toBe(604);
+    let total = 0;
+    for (let p = 1; p <= 604; p += 1) total += (await getPageAyahs(db, p)).length;
+    expect(total).toBe(6236);
+    expect(toArabicDigits(255)).toBe('٢٥٥');
+    expect(ayahMarker(7)).toBe('۝٧');
+  });
+
+  it('flags quarter (rub‘) starts', async () => {
+    let quarters = 0;
+    for (let p = 1; p <= 604; p += 1) quarters += (await getPageAyahs(db, p)).filter((a) => a.rubStart).length;
+    expect(quarters).toBe(239); // 240 quarters; the first begins at Al-Fatiha 1:1 and is not marked
   });
 });

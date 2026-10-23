@@ -190,3 +190,18 @@ describe('prayer notification planning', () => {
     expect(diffSchedule([], pending).toCancel).toHaveLength(pending.length);
   });
 });
+
+describe('Azan alerts', () => {
+  const { adhanChannelId } = jest.requireActual('@/features/notifications/plan') as typeof import('@/features/notifications/plan');
+  it('uses a channel per bundled sound so Android picks up a newly added recording', () => {
+    expect(adhanChannelId(null)).toBe('prayer-adhan-default-v1');
+    expect(adhanChannelId('adhan.mp3')).toBe('prayer-adhan-adhan_mp3-v1');
+  });
+  it('routes Azan-mode prayers to the Azan channel by default', () => {
+    const loc = { latitude: 12.97, longitude: 77.56, timezone: 'Asia/Kolkata' };
+    const now = new Date(Date.UTC(2026, 9, 23, 6, 0));
+    const plan = planPrayerNotifications(calculateRange(loc, DEFAULT_PRAYER_SETTINGS, now, 1), DEFAULT_SETTINGS.notifications, loc.timezone, now, 56, adhanChannelId('adhan.mp3'));
+    expect(plan.length).toBeGreaterThan(0);
+    expect(plan.every((n) => n.mode === 'adhan' && n.channelId === 'prayer-adhan-adhan_mp3-v1')).toBe(true);
+  });
+});
