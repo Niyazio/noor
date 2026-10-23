@@ -1,0 +1,67 @@
+{
+  "$comment": "Pinned, verbatim content inputs. The build script refuses to run if a checksum differs. Update a checksum only after replacing a file with a newer verbatim copy from its official source and reviewing its licence.",
+  "quran": {
+    "id": "tanzil-uthmani",
+    "file": "tanzil/quran-uthmani.xml",
+    "sha256": "bb2fe2b9e86b532228d7f74005080c1679c14aa2da6024fe30d29772f4f5b189",
+    "name": "Tanzil Quran Text (Uthmani)",
+    "version": "1.0.2",
+    "riwaya": "Hafs 'an 'Asim",
+    "license": "CC BY 3.0 — verbatim copies only; changing the text is not allowed; source (Tanzil.net) must be indicated with a link.",
+    "sourceUrl": "https://tanzil.net/download/",
+    "retrievedVia": "PyPI package pyquran==1.0.1 (pyquran/QuranCorpus/quran-uthmani.xml), md5 6aae945d556a1b28cfe682c0ea5ab518 matches the md5 file shipped beside it. Copyright block intact.",
+    "upgradeNote": "Tanzil has published newer versions of this text since 1.0.2. Before release, download the current quran-uthmani.xml from tanzil.net/download, replace this file, update sha256/version here and rebuild."
+  },
+  "translations": [
+    {
+      "id": "en.shakir",
+      "file": "translations/en.shakir.txt",
+      "sha256": "4341f8aa89aed73f5f52579b80db085b8a415aa666827ec5303d19e25dff3fa5",
+      "language": "en",
+      "direction": "ltr",
+      "name": "Shakir",
+      "translator": "Mohammad Habib Shakir",
+      "source": "Tanzil.net (en.shakir)",
+      "sourceUrl": "https://tanzil.net/trans/en.shakir",
+      "license": "Tanzil translation terms: non-commercial use, verbatim, with attribution. Obtain publisher permission before any commercial distribution.",
+      "commercialUseCleared": false,
+      "retrievedVia": "npm package quran@0.0.9 (data/qurandb, table en, translator=shakir); converted to Tanzil 'sura|aya|text' layout without changing text."
+    },
+    {
+      "id": "ur.jawadi",
+      "file": "translations/ur.jawadi.txt",
+      "sha256": "df70753fa1d22550a11a249602a97589e9930a70d9767d72e690baf96d780512",
+      "language": "ur",
+      "direction": "rtl",
+      "name": "Jawadi",
+      "translator": "Syed Zeeshan Haider Jawadi",
+      "source": "Tanzil.net (ur.jawadi)",
+      "sourceUrl": "https://tanzil.net/trans/ur.jawadi",
+      "license": "Tanzil translation terms: non-commercial use, verbatim, with attribution. Obtain publisher permission before any commercial distribution.",
+      "commercialUseCleared": false,
+      "retrievedVia": "npm package quran@0.0.9 (data/qurandb, table ur, translator=jawadi); converted to Tanzil 'sura|aya|text' layout without changing text."
+    },
+    {
+      "id": "hi.hindi",
+      "file": "translations/hi.hindi.txt",
+      "sha256": "86e0f6275dcd7570abb3e594d854fb547661048d5a8c6794dce01f8a1d026d65",
+      "language": "hi",
+      "direction": "ltr",
+      "name": "Suhel Farooq Khan & Saifur Rahman Nadwi",
+      "translator": "Muhammad Farooq Khan and Muhammad Ahmed (Tanzil hi.hindi)",
+      "source": "Tanzil.net (hi.hindi)",
+      "sourceUrl": "https://tanzil.net/trans/hi.hindi",
+      "license": "Tanzil translation terms: non-commercial use, verbatim, with attribution. Obtain publisher permission before any commercial distribution.",
+      "commercialUseCleared": false,
+      "retrievedVia": "npm package quran@0.0.9 (data/qurandb, table hi, translator=hindi); converted to Tanzil 'sura|aya|text' layout without changing text.",
+      "reviewNote": "Tanzil lists hi.hindi as 'Suhel Farooq Khan and Saifur Rahman Nadwi'. Confirm the translator credit against tanzil.net before release."
+    }
+  ],
+  "cities": {
+    "file": "cities/cities.json",
+    "name": "World cities with IANA time zones",
+    "source": "npm package city-timezones@1.3.4 (MIT), data/cityMap.json, reduced to [name, province, iso2, lat, lng, timezone, population].",
+    "license": "MIT (package). Upstream appears to be Natural Earth populated places (public domain) — confirm before release.",
+    "note": "Used only for manual city selection. Device GPS coordinates are preferred when permission is granted."
+  }
+}

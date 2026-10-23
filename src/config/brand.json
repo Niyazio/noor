@@ -1,0 +1,14 @@
+{
+  "appName": "Noor",
+  "tagline": "The Islamic Companion",
+  "slug": "noor-islamic-companion",
+  "scheme": "noor",
+  "iosBundleIdentifier": "app.noor.companion",
+  "androidPackage": "app.noor.companion",
+  "colors": {
+    "emerald": "#0F5E4A",
+    "navy": "#0B1B2B",
+    "ivory": "#FAF6EC",
+    "gold": "#C9A24A"
+  }
+}
