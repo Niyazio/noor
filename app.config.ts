@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     blockedPermissions: ['android.permission.ACCESS_BACKGROUND_LOCATION', 'android.permission.RECORD_AUDIO'],
     predictiveBackGestureEnabled: false,
   },
-  web: { favicon: './assets/favicon.png' },
+  web: { favicon: './assets/favicon.png', name: brand.appName, shortName: brand.appName, themeColor: brand.colors.emerald, backgroundColor: brand.colors.ivory },
   plugins: [
     'expo-router',
     'expo-status-bar',
@@ -91,7 +91,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ['expo-audio', { microphonePermission: false, enableBackgroundPlayback: true }],
     ['expo-sensors', { motionPermission: 'Motion sensors are used to point the Qibla compass.' }],
   ],
-  experiments: { typedRoutes: true },
+  // EXPO_BASE_URL serves the web app from a sub-path (e.g. "/app" next to the download page).
+  experiments: { typedRoutes: true, ...(process.env.EXPO_BASE_URL ? { baseUrl: process.env.EXPO_BASE_URL } : {}) },
   extra: {
     // Public values only. Never place a Supabase service-role key here.
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? null,

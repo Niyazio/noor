@@ -1,0 +1,93 @@
+# Builds the Android APK and the website (download page + installable web app),
+# then deploys the website to Cloudflare Pages and attaches the APK to a GitHub Release.
+#
+# One-time setup (GitHub repo → Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   token with "Cloudflare Pages: Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID  your Cloudflare account id
+# Without these secrets the site is still built and attached as a workflow artifact.
+name: Build APK & deploy website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - name: Generate native Android project (Expo prebuild)
+        run: npx expo prebuild --platform android --no-install
+      - name: Build release APK
+        working-directory: android
+        # Signed with the template's debug keystore: fine for sideloading and consistent
+        # across builds (so updates install over each other). Use a private keystore before
+        # any store release.
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+      - name: Collect APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk noor.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noor-apk
+          path: noor.apk
+          retention-days: 30
+
+  website:
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: noor-apk
+      - name: Build website
+        run: npm run site:build
+        env:
+          SITE_BASE: ''
+          APK_PATH: noor.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noor-website
+          path: dist/site
+          retention-days: 30
+      - name: Deploy to Cloudflare Pages
+        if: ${{ env.CF_TOKEN != '' }}
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/site --project-name=noor --branch=main
+      - name: Publish APK as a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Noor build ${{ github.run_number }}
+          files: noor.apk
+          body: Android APK built from ${{ github.sha }}. Install by opening the file on your phone.

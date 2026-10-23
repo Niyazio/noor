@@ -17,6 +17,12 @@ npx expo start --dev-client
 
 Expo Go is not sufficient: background tasks, notification channels and exact alarms need a development build.
 
+## Publish without the app stores
+
+`npm run site:build` → `dist/noor-website.zip`: a download page plus an installable, offline web app for
+iPhone and PC, and the Android APK when available. Upload to Cloudflare Pages (drag and drop) or let
+`.github/workflows/release.yml` build the APK and deploy automatically — see `docs/DEPLOY.md`.
+
 ## What works today
 
 - **Quran** — 114 surahs, juz navigation, reader with translations (en/ur/hi), deep links to any ayah,
@@ -42,4 +48,5 @@ widgets, mosque finder. These depend on licensed content or later phases — see
 - `docs/CONTENT_SOURCES.md` — provenance and licences of every bundled dataset
 - `docs/NOTIFICATIONS.md` — Android/iOS behaviour, limitations, device test matrix
 - `docs/QA.md` — what was tested and how
+- `docs/DEPLOY.md` — website, web app and APK publishing
 - `docs/CONTENT_REVIEW.md`, `docs/LOCALIZATION.md` — items needing human review
